@@ -1,20 +1,44 @@
-//backend/src/routes/quest.route.ts
-import express from 'express';
-import { db } from '../database';
-import { generateDailyQuests } from '../services/ai.service';
+// backend/src/routes/quest.route.ts
 
-const router = express.Router();
+import express from 'express'
+import { db } from '../database'
+import { generateDailyQuests } from '../services/ai.service'
 
-router.get('/today', async(req,res)=>{
+const router = express.Router()
 
- const database = await db;
+router.get('/today', async (req, res) => {
+  try {
+    const database = await db
 
- const user = await database.get(`SELECT * FROM users LIMIT 1`);
- const logs = await database.all(`SELECT * FROM exp_logs`);
+    // 1. clear quest เก่าวันนี้ (กันซ้ำ)
+    await database.run(`DELETE FROM quests`)
 
- const quests = await generateDailyQuests();
+    // 2. generate quest จาก AI
+    const quests = await generateDailyQuests()
 
- res.json(quests);
-});
+    // 3. save ลง database
+    for (const q of quests) {
+      await database.run(
+        `
+        INSERT INTO quests (quest_type, difficulty, base_exp, description)
+        VALUES (?, ?, ?, ?)
+        `,
+        q.type,
+        q.difficulty,
+        q.base_exp,
+        q.description
+      )
+    }
 
-export default router;
+    // 4. ดึง quest จาก DB ส่งกลับ frontend
+    const savedQuests = await database.all(`SELECT * FROM quests`)
+
+    res.json(savedQuests)
+
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Failed to generate quests' })
+  }
+})
+
+export default router
