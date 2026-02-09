@@ -1,0 +1,3 @@
+backend\db.sqlite 
+git add .gitignore
+git commit -m "chore: ignore sqlite db"
