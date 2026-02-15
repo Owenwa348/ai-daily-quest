@@ -1,34 +1,24 @@
-//backend/src/routes/user.route.ts
-import express from "express";
-import { db } from "../database";
+import express from "express"
+import { db } from "../database"
 
-const router = express.Router();
+const router = express.Router()
 
-/**
- * Create new user
- */
-router.post("/create", async (req, res) => {
-  const database = await db;
+router.get("/me", async (req, res) => {
+  const database = await db
 
-  await database.run(`
-    INSERT INTO users(level,total_exp,stats,created_at)
-    VALUES(1,0,'{"STR":0,"INT":0,"DEX":0,"WILL":0}',datetime('now'))
-  `);
+  let user = await database.get(`SELECT * FROM users LIMIT 1`)
 
-  res.json({ status: "created" });
-});
+  // auto seed user ถ้ายังไม่มี
+  if (!user) {
+    await database.run(`
+      INSERT INTO users(level,total_exp,stats)
+      VALUES(1,0,'{"STR":0,"INT":0,"DEX":0,"WILL":0}')
+    `)
 
-/**
- * Get user profile
- */
-router.get("/profile", async (req, res) => {
-  const database = await db;
+    user = await database.get(`SELECT * FROM users LIMIT 1`)
+  }
 
-  const user = await database.get(`
-    SELECT * FROM users LIMIT 1
-  `);
+  res.json(user)
+})
 
-  res.json(user);
-});
-
-export default router;
+export default router
