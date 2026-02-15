@@ -8,11 +8,7 @@ export function startDailyReset() {
 
     const database = await db
 
-    // clear quests
     await database.run(`DELETE FROM quests`)
-
-    // optional: clear exp logs (ถ้าอยากให้ quest ทำใหม่ทุกวัน)
-    await database.run(`DELETE FROM exp_logs`)
 
     const quests = await generateDailyQuests()
 

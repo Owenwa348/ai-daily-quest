@@ -1,3 +1,4 @@
+
 import express from "express"
 import { db } from "../database"
 
@@ -8,7 +9,6 @@ router.get("/me", async (req, res) => {
 
   let user = await database.get(`SELECT * FROM users LIMIT 1`)
 
-  // auto seed user ถ้ายังไม่มี
   if (!user) {
     await database.run(`
       INSERT INTO users(level,total_exp,stats)
@@ -18,7 +18,10 @@ router.get("/me", async (req, res) => {
     user = await database.get(`SELECT * FROM users LIMIT 1`)
   }
 
-  res.json(user)
+  res.json({
+    ...user,
+    stats: JSON.parse(user.stats)
+  })
 })
 
 export default router

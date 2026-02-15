@@ -12,10 +12,13 @@ router.get('/today', async (req, res) => {
   try {
     const database = await db
 
+    // ลบ quest เก่า
     await database.run(`DELETE FROM quests`)
 
+    // generate จาก AI
     const quests = await generateDailyQuests()
 
+    // save ลง db
     for (const q of quests) {
       await database.run(`
         INSERT INTO quests (quest_type,difficulty,base_exp,description)
@@ -53,9 +56,10 @@ router.post('/complete/:id', async (req, res) => {
 
     if (!quest) return res.status(404).json({ error: 'Quest not found' })
 
+    // solo player
     const user = await database.get(`SELECT * FROM users LIMIT 1`)
 
-    // prevent duplicate completion
+    // กันกดซ้ำ
     const already = await database.get(`
       SELECT id FROM exp_logs
       WHERE quest_id=? AND user_id=?
@@ -78,6 +82,7 @@ router.post('/complete/:id', async (req, res) => {
       quest.base_exp
     )
 
+    // CORE RPG
     const result = await gainExp(user.id, quest.base_exp)
 
     res.json({
@@ -93,6 +98,27 @@ router.post('/complete/:id', async (req, res) => {
     console.error(e)
     res.status(500).json({ error: 'complete failed' })
   }
+})
+
+
+// ===============================
+// Quest history
+// ===============================
+router.get('/history', async (req, res) => {
+  const database = await db
+
+  const rows = await database.all(`
+    SELECT 
+      exp_logs.id,
+      quests.description,
+      exp_logs.exp_gained,
+      exp_logs.created_at
+    FROM exp_logs
+    JOIN quests ON quests.id = exp_logs.quest_id
+    ORDER BY exp_logs.created_at DESC
+  `)
+
+  res.json(rows)
 })
 
 export default router
