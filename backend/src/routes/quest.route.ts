@@ -1,7 +1,9 @@
+// backend/src/routes/quest.route.ts
 import express from 'express'
 import { db } from '../database'
 import { generateDailyQuests } from '../services/ai.service'
 import { gainExp } from '../services/exp.service'
+import { checkAchievements } from '../services/achievement.service'
 
 const router = express.Router()
 
@@ -84,6 +86,7 @@ router.post('/complete/:id', async (req, res) => {
 
     // CORE RPG
     const result = await gainExp(user.id, quest.base_exp)
+    await checkAchievements(user.id)
 
     res.json({
       quest: quest.description,

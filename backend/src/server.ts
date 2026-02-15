@@ -1,12 +1,14 @@
+// backend/src/server.ts
 import "dotenv/config"
 
 import app from "./app"
 import { initDB } from "./database"
 import { startDailyReset } from "./cron/ailyReset.cron"
+import { seedAchievements } from "./services/achievement.seed"
 
 async function startServer() {
   await initDB()
-
+  await seedAchievements()
   // 🔥 ใช้ cron อย่างเดียว
   startDailyReset()
 

@@ -1,3 +1,4 @@
+// backend/src/services/ai.service.ts
 import { GoogleGenAI } from "@google/genai"
 
 const USE_MOCK = true // 🔥 DEV MODE (เปลี่ยนเป็น false ตอน production)
