@@ -1,5 +1,6 @@
 import { db } from "../database"
 import { getUserExpMultiplier } from "./skill.service"
+import { getEquipmentBonus } from "./equipment.service"
 
 const LEVEL_EXP = 500
 
@@ -19,8 +20,11 @@ export async function gainExp(userId: number, baseExp: number) {
   // 🔥 skill passive multiplier
   const bonus = await getUserExpMultiplier(userId)
 
+  // 🔥 equipment passive multiplier
+  const gear = await getEquipmentBonus(userId)
+
   // EXP ที่ได้จริง (หลัง skill bonus)
-  const gained = Math.floor(baseExp * bonus)
+  const gained = Math.floor(baseExp * bonus * gear.exp)
 
   let totalExp = user.total_exp + gained
   let level = user.level
