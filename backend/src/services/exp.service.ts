@@ -1,24 +1,77 @@
-//backend/src/services/exp.service.ts
+import { db } from "../database"
+import { getUserExpMultiplier } from "./skill.service"
+import { getEquipmentBonus } from "./equipment.service"
+
+const LEVEL_EXP = 500
+
 /**
- * EXP calculation logic
- * This is the core RPG reinforcement system
+ * Core RPG EXP + Level + Stat system (with skill bonus)
  */
+export async function gainExp(userId: number, baseExp: number) {
+  const database = await db
 
-export function calculateExp(
-  baseExp: number,
-  difficulty: number,
-  consistencyBonus = 1,
-  fatiguePenalty = 1
-) {
-  /**
-   * Formula:
-   * EXP = base × difficulty × consistency × fatigue
-   */
+  const user = await database.get(
+    `SELECT * FROM users WHERE id=?`,
+    userId
+  )
 
-  return Math.floor(
-    baseExp *
-    difficulty *
-    consistencyBonus *
-    fatiguePenalty
-  );
+  if (!user) throw new Error("User not found")
+
+  // 🔥 skill passive multiplier
+  const bonus = await getUserExpMultiplier(userId)
+
+  // 🔥 equipment passive multiplier
+  const gear = await getEquipmentBonus(userId)
+
+  // EXP ที่ได้จริง (หลัง skill bonus)
+  const gained = Math.floor(baseExp * bonus * gear.exp)
+
+  let totalExp = user.total_exp + gained
+  let level = user.level
+
+  let stats = user.stats
+    ? JSON.parse(user.stats)
+    : { STR: 0, INT: 0, DEX: 0, WILL: 0 }
+
+  let leveled = false
+  let levelUps = 0
+
+  // =========================
+  // LEVEL LOOP
+  // =========================
+  while (totalExp >= LEVEL_EXP) {
+    totalExp -= LEVEL_EXP
+    level++
+    levelUps++
+    leveled = true
+
+    // stat gain ทุก level
+    stats.STR++
+    stats.INT++
+    stats.DEX++
+    stats.WILL++
+  }
+
+  // =========================
+  // SAVE USER
+  // =========================
+  await database.run(`
+    UPDATE users
+    SET level=?, total_exp=?, stats=?
+    WHERE id=?
+  `,
+    level,
+    totalExp,
+    JSON.stringify(stats),
+    userId
+  )
+
+  return {
+    gained,        // 🔥 EXP หลัง bonus
+    level,
+    levelUps,
+    totalExp,
+    stats,
+    leveled
+  }
 }
